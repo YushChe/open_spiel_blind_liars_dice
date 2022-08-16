@@ -128,15 +128,15 @@ else:
   req_file = "../requirements.txt"
 
 setuptools.setup(
-    name="open_spiel",
+    name="open_spiel_blind_liars_dice",
     version="1.1.1",
     license="Apache 2.0",
-    author="The OpenSpiel authors",
-    author_email="open_spiel@google.com",
+    author="Dog Gang",
+    author_email="open_spiel@doggle.com",
     description="A Framework for Reinforcement Learning in Games",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/deepmind/open_spiel",
+    url="https://github.com/YushChe/open_spiel_blind_liars_dice",
     install_requires=_get_requirements(req_file),
     python_requires=">=3.7",
     ext_modules=[CMakeExtension("pyspiel", sourcedir="open_spiel")],
