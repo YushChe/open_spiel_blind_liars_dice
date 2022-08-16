@@ -128,7 +128,7 @@ else:
   req_file = "../requirements.txt"
 
 setuptools.setup(
-    name="open_spiel",
+    name="open_spiel_blind",
     version="1.1.1",
     license="Apache 2.0",
     author="Dog Gang",
