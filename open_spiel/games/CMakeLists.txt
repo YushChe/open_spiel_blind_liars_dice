@@ -11,6 +11,8 @@ set(GAME_SOURCES
   battleship_types.cc
   blackjack.cc
   blackjack.h
+  blind_liars_dice.cc
+  blind_liars_dice.h
   blotto.cc
   blotto.h
   breakthrough.cc

@@ -27,7 +27,7 @@
 //   "players"      int      number of players                      (def. = 2)
 
 namespace open_spiel {
-    namespace liars_dice {
+    namespace blind_liars_dice {
 
         enum BiddingRule {
             // The player may bid a higher quantity of any particular face, or the same
@@ -41,14 +41,14 @@ namespace open_spiel {
             kResetQuantity = 2
         };
 
-        class LiarsDiceGame;
+        class BlindLiarsDiceGame;
 
-        class LiarsDiceState : public State {
+        class BlindLiarsDiceState : public State {
         public:
-            explicit LiarsDiceState(std::shared_ptr<const Game> game, int total_num_dice,
-                                    int max_dice_per_player,
-                                    const std::vector<int>& num_dice);
-            LiarsDiceState(const LiarsDiceState&) = default;
+            explicit BlindLiarsDiceState(std::shared_ptr<const Game> game, int total_num_dice,
+                                         int max_dice_per_player,
+                                         const std::vector<int>& num_dice);
+            BlindLiarsDiceState(const BlindLiarsDiceState&) = default;
 
             void Reset(const GameParameters& params);
             Player CurrentPlayer() const override;
@@ -90,6 +90,7 @@ namespace open_spiel {
 
             // Dice outcomes: first indexed by player, then by dice number
             std::vector<std::vector<int>> dice_outcomes_;
+            std::vector<std::vector<int>> blind_dice_outcomes_;
 
             // The bid sequence.
             std::vector<int> bidseq_;
@@ -119,9 +120,9 @@ namespace open_spiel {
             std::string bidseq_str_;
         };
 
-        class LiarsDiceGame : public Game {
+        class BlindLiarsDiceGame : public Game {
         public:
-            explicit LiarsDiceGame(const GameParameters& params, GameType game_type);
+            explicit BlindLiarsDiceGame(const GameParameters& params, GameType game_type);
             int NumDistinctActions() const override;
             std::unique_ptr<State> NewInitialState() const override;
             int MaxChanceOutcomes() const override;
@@ -144,6 +145,7 @@ namespace open_spiel {
             // Return the number of dice each player has.
             std::vector<int> num_dice() const { return num_dice_; }
 
+            int blind_player_id() const { return blind_player_id_; }
             const int dice_sides() const { return dice_sides_; }
             const BiddingRule bidding_rule() const { return bidding_rule_; }
 
@@ -153,7 +155,7 @@ namespace open_spiel {
 
             // Total dice in the game, determines the legal bids.
             int total_num_dice_;
-
+            int blind_player_id_;
             std::vector<int> num_dice_;  // How many dice each player has.
             int max_dice_per_player_;    // Maximum value in num_dice_ vector.
             const int dice_sides_;       // Number of faces on each die.
@@ -168,22 +170,22 @@ namespace open_spiel {
 // This game has an extra parameter:
 //   "recall_length"    int      number of bids to remember     (def. = 4)
 
-        class ImperfectRecallLiarsDiceState : public LiarsDiceState {
+        class ImperfectRecallLiarsDiceState : public BlindLiarsDiceState {
         public:
             ImperfectRecallLiarsDiceState(std::shared_ptr<const Game> game,
                                           int total_num_dice,
                                           int max_dice_per_player,
                                           const std::vector<int>& num_dice)
-                    : LiarsDiceState(game, total_num_dice, max_dice_per_player, num_dice) {}
+                    : BlindLiarsDiceState(game, total_num_dice, max_dice_per_player, num_dice) {}
             std::string InformationStateString(Player player) const override;
             std::unique_ptr<State> Clone() const override {
                 return std::unique_ptr<State>(new ImperfectRecallLiarsDiceState(*this));
             }
         };
 
-        class ImperfectRecallLiarsDiceGame : public LiarsDiceGame {
+        class ImperfectRecallBlindLiarsDiceGame : public BlindLiarsDiceGame {
         public:
-            explicit ImperfectRecallLiarsDiceGame(const GameParameters& params);
+            explicit ImperfectRecallBlindLiarsDiceGame(const GameParameters& params);
             std::unique_ptr<State> NewInitialState() const override;
 
             int recall_length() const { return recall_length_; }
@@ -193,7 +195,7 @@ namespace open_spiel {
         };
 
 
-    }  // namespace liars_dice
+    }  // namespace blind_liars_dice
 }  // namespace open_spiel
 
 #endif //OPEN_SPIEL_BLIND_LIARS_DICE_BLIND_LIARS_DICE_H

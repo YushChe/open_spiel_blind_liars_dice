@@ -3,7 +3,7 @@
 //
 
 
-#include "open_spiel/games/balind_liars_dice.h"
+#include "open_spiel/games/blind_liars_dice.h"
 
 #include <algorithm>
 #include <array>
@@ -12,7 +12,7 @@
 #include "open_spiel/game_parameters.h"
 
 namespace open_spiel {
-    namespace liars_dice {
+    namespace blind_liars_dice {
 
         namespace {
 // Default Parameters.
@@ -22,14 +22,15 @@ namespace open_spiel {
             constexpr const char* kDefaultBiddingRule = "reset-face";
             constexpr int kInvalidOutcome = -1;
             constexpr int kInvalidBid = -1;
+            constexpr int kBlindPlayerId = 0;
 
 // Only relevant for the imperfect recall version.
             constexpr int kDefaultRecallLength = 4;
 
 // Facts about the game
             const GameType kGameType{
-                    /*short_name=*/"liars_dice",
-                    /*long_name=*/"Liars Dice",
+                    /*short_name=*/"blind_liars_dice",
+                    /*long_name=*/"Blind Liars Dice",
                                    GameType::Dynamics::kSequential,
                                    GameType::ChanceMode::kExplicitStochastic,
                                    GameType::Information::kImperfectInformation,
@@ -45,10 +46,11 @@ namespace open_spiel {
                                    {{"players", GameParameter(kDefaultPlayers)},
                                     {"numdice", GameParameter(kDefaultNumDice)},
                                     {"dice_sides", GameParameter(kDefaultDiceSides)},
-                                    {"bidding_rule", GameParameter(kDefaultBiddingRule)}}};
+                                    {"bidding_rule", GameParameter(kDefaultBiddingRule)},
+                                    {"blind_player_id", GameParameter(kBlindPlayerId)}}};
 
             const GameType kImperfectRecallGameType{
-                    /*short_name=*/"liars_dice_ir",
+                    /*short_name=*/"blind_liars_dice_ir",
                     /*long_name=*/"Liars Dice with Imperfect Recall",
                                    GameType::Dynamics::kSequential,
                                    GameType::ChanceMode::kExplicitStochastic,
@@ -66,16 +68,17 @@ namespace open_spiel {
                                     {"numdice", GameParameter(kDefaultNumDice)},
                                     {"dice_sides", GameParameter(kDefaultDiceSides)},
                                     {"bidding_rule", GameParameter(kDefaultBiddingRule)},
-                                    {"recall_length", GameParameter(kDefaultRecallLength)}}};
+                                    {"recall_length", GameParameter(kDefaultRecallLength)},
+                                    {"blind_player_id", GameParameter(kBlindPlayerId)}}};
 
 
             std::shared_ptr<const Game> Factory(const GameParameters& params) {
-                return std::shared_ptr<const Game>(new LiarsDiceGame(params, kGameType));
+                return std::shared_ptr<const Game>(new BlindLiarsDiceGame(params, kGameType));
             }
 
             std::shared_ptr<const Game> ImperfectRecallFactory(
                     const GameParameters& params) {
-                return std::shared_ptr<const Game>(new ImperfectRecallLiarsDiceGame(params));
+                return std::shared_ptr<const Game>(new ImperfectRecallBlindLiarsDiceGame(params));
             }
 
             const BiddingRule ParseBiddingRule(const std::string& bidding_rule_str) {
@@ -88,17 +91,17 @@ namespace open_spiel {
                 }
             }
 
-            const LiarsDiceGame* UnwrapGame(const Game* game) {
-                return down_cast<const LiarsDiceGame*>(game);
+            const BlindLiarsDiceGame* UnwrapGame(const Game* game) {
+                return down_cast<const BlindLiarsDiceGame*>(game);
             }
         }  // namespace
 
         REGISTER_SPIEL_GAME(kGameType, Factory);
         REGISTER_SPIEL_GAME(kImperfectRecallGameType, ImperfectRecallFactory);
 
-        LiarsDiceState::LiarsDiceState(std::shared_ptr<const Game> game,
-                                       int total_num_dice, int max_dice_per_player,
-                                       const std::vector<int>& num_dice)
+        BlindLiarsDiceState::BlindLiarsDiceState(std::shared_ptr<const Game> game,
+                                            int total_num_dice, int max_dice_per_player,
+                                            const std::vector<int>& num_dice)
                 : State(game),
                   dice_outcomes_(),
                   bidseq_(),
@@ -121,7 +124,7 @@ namespace open_spiel {
             }
         }
 
-        std::string LiarsDiceState::ActionToString(Player player,
+        std::string BlindLiarsDiceState::ActionToString(Player player,
                                                    Action action_id) const {
             if (player != kChancePlayerId) {
                 if (action_id == total_num_dice_ * dice_sides()) {
@@ -134,7 +137,7 @@ namespace open_spiel {
             return absl::StrCat("Roll ", action_id + 1);
         }
 
-        int LiarsDiceState::CurrentPlayer() const {
+        int BlindLiarsDiceState::CurrentPlayer() const {
             if (IsTerminal()) {
                 return kTerminalPlayerId;
             } else {
@@ -142,7 +145,7 @@ namespace open_spiel {
             }
         }
 
-        void LiarsDiceState::ResolveWinner() {
+        void BlindLiarsDiceState::ResolveWinner() {
             const std::pair<int, int> bid = UnrankBid(current_bid_);
             int quantity = bid.first, face = bid.second;
             int matches = 0;
@@ -169,15 +172,15 @@ namespace open_spiel {
             }
         }
 
-        const int LiarsDiceState::dice_sides() const {
+        const int BlindLiarsDiceState::dice_sides() const {
             return UnwrapGame(game_.get())->dice_sides();
         }
 
-        const BiddingRule LiarsDiceState::bidding_rule() const {
+        const BiddingRule BlindLiarsDiceState::bidding_rule() const {
             return UnwrapGame(game_.get())->bidding_rule();
         }
 
-        void LiarsDiceState::DoApplyAction(Action action) {
+        void BlindLiarsDiceState::DoApplyAction(Action action) {
             if (IsChanceNode()) {
                 // Fill the next die roll for the current roller.
                 SPIEL_CHECK_GE(cur_roller_, 0);
@@ -187,7 +190,7 @@ namespace open_spiel {
                 int slot = num_dice_rolled_[cur_roller_];
 
                 // Assign the roll.
-                dice_outcomes_[cur_roller_][slot] = action + 1;
+                dice_outcomes_[cur_roller_][slot] = 5;//action + 1;
                 num_dice_rolled_[cur_roller_]++;
 
                 // Check to see if we must change the roller.
@@ -197,8 +200,14 @@ namespace open_spiel {
                         // Time to start playing!
                         cur_player_ = 0;
                         // Sort all players' rolls
+                        blind_dice_outcomes_ = std::vector<std::vector<int>>(dice_outcomes_);
                         for (auto p = Player{0}; p < num_players_; p++) {
                             std::sort(dice_outcomes_[p].begin(), dice_outcomes_[p].end());
+                            if(p == UnwrapGame(game_.get())->blind_player_id()) {
+                                for(int i = 0; i < dice_outcomes_[p].size(); i++){
+                                    blind_dice_outcomes_[p][i] = 1;
+                                }
+                            }
                         }
                     }
                 }
@@ -226,7 +235,7 @@ namespace open_spiel {
             }
         }
 
-        std::vector<Action> LiarsDiceState::LegalActions() const {
+        std::vector<Action> BlindLiarsDiceState::LegalActions() const {
             if (IsTerminal()) return {};
             // A chance node is a single die roll.
             if (IsChanceNode()) {
@@ -252,7 +261,7 @@ namespace open_spiel {
             return actions;
         }
 
-        std::vector<std::pair<Action, double>> LiarsDiceState::ChanceOutcomes() const {
+        std::vector<std::pair<Action, double>> BlindLiarsDiceState::ChanceOutcomes() const {
             SPIEL_CHECK_TRUE(IsChanceNode());
 
             std::vector<std::pair<Action, double>> outcomes;
@@ -266,7 +275,7 @@ namespace open_spiel {
             return outcomes;
         }
 
-        std::string LiarsDiceState::InformationStateString(Player player) const {
+        std::string BlindLiarsDiceState::InformationStateString(Player player) const {
             SPIEL_CHECK_GE(player, 0);
             SPIEL_CHECK_LT(player, num_players_);
 
@@ -282,7 +291,7 @@ namespace open_spiel {
             return result;
         }
 
-        std::string LiarsDiceState::ToString() const {
+        std::string BlindLiarsDiceState::ToString() const {
             std::string result = "";
 
             for (auto p = Player{0}; p < num_players_; p++) {
@@ -308,9 +317,9 @@ namespace open_spiel {
             return result;
         }
 
-        bool LiarsDiceState::IsTerminal() const { return winner_ != kInvalidPlayer; }
+        bool BlindLiarsDiceState::IsTerminal() const { return winner_ != kInvalidPlayer; }
 
-        std::vector<double> LiarsDiceState::Returns() const {
+        std::vector<double> BlindLiarsDiceState::Returns() const {
             std::vector<double> returns(num_players_, 0.0);
 
             if (winner_ != kInvalidPlayer) {
@@ -324,7 +333,7 @@ namespace open_spiel {
             return returns;
         }
 
-        void LiarsDiceState::InformationStateTensor(Player player,
+        void BlindLiarsDiceState::InformationStateTensor(Player player,
                                                     absl::Span<float> values) const {
             SPIEL_CHECK_GE(player, 0);
             SPIEL_CHECK_LT(player, num_players_);
@@ -345,7 +354,7 @@ namespace open_spiel {
             int my_num_dice = num_dice_[player];
 
             for (int d = 0; d < my_num_dice; d++) {
-                int outcome = dice_outcomes_[player][d];
+                int outcome = blind_dice_outcomes_[player][d];
                 if (outcome != kInvalidOutcome) {
                     SPIEL_CHECK_GE(outcome, 1);
                     SPIEL_CHECK_LE(outcome, dice_sides());
@@ -365,7 +374,7 @@ namespace open_spiel {
             }
         }
 
-        void LiarsDiceState::ObservationTensor(Player player,
+        void BlindLiarsDiceState::ObservationTensor(Player player,
                                                absl::Span<float> values) const {
             SPIEL_CHECK_GE(player, 0);
             SPIEL_CHECK_LT(player, num_players_);
@@ -386,7 +395,7 @@ namespace open_spiel {
             int my_num_dice = num_dice_[player];
 
             for (int d = 0; d < my_num_dice; d++) {
-                int outcome = dice_outcomes_[player][d];
+                int outcome = blind_dice_outcomes_[player][d];
                 if (outcome != kInvalidOutcome) {
                     SPIEL_CHECK_GE(outcome, 1);
                     SPIEL_CHECK_LE(outcome, dice_sides());
@@ -409,11 +418,11 @@ namespace open_spiel {
             }
         }
 
-        std::unique_ptr<State> LiarsDiceState::Clone() const {
-            return std::unique_ptr<State>(new LiarsDiceState(*this));
+        std::unique_ptr<State> BlindLiarsDiceState::Clone() const {
+            return std::unique_ptr<State>(new BlindLiarsDiceState(*this));
         }
 
-        std::pair<int, int> LiarsDiceState::UnrankBid(int bidnum) const {
+        std::pair<int, int> BlindLiarsDiceState::UnrankBid(int bidnum) const {
             std::pair<int, int> bid;
             SPIEL_CHECK_NE(bidnum, kInvalidBid);
             SPIEL_CHECK_GE(bidnum, 0);
@@ -481,10 +490,11 @@ namespace open_spiel {
             return bid;
         }
 
-        LiarsDiceGame::LiarsDiceGame(const GameParameters& params, GameType game_type)
+        BlindLiarsDiceGame::BlindLiarsDiceGame(const GameParameters& params, GameType game_type)
                 : Game(game_type, params),
                   num_players_(ParameterValue<int>("players")),
                   dice_sides_(ParameterValue<int>("dice_sides")),
+                  blind_player_id_(ParameterValue<int>("blind_player_id")),
                   bidding_rule_(ParseBiddingRule(
                           ParameterValue<std::string>("bidding_rule"))) {
             SPIEL_CHECK_GE(num_players_, kGameType.min_num_players);
@@ -519,28 +529,28 @@ namespace open_spiel {
             }
         }
 
-        int LiarsDiceGame::NumDistinctActions() const {
+        int BlindLiarsDiceGame::NumDistinctActions() const {
             return total_num_dice_ * dice_sides_ + 1;
         }
 
-        std::unique_ptr<State> LiarsDiceGame::NewInitialState() const {
-            std::unique_ptr<LiarsDiceState> state(
-                    new LiarsDiceState(shared_from_this(),
+        std::unique_ptr<State> BlindLiarsDiceGame::NewInitialState() const {
+            std::unique_ptr<BlindLiarsDiceState> state(
+                    new BlindLiarsDiceState(shared_from_this(),
                             /*total_num_dice=*/total_num_dice_,
                             /*max_dice_per_player=*/max_dice_per_player_,
                             /*num_dice=*/num_dice_));
             return state;
         }
 
-        int LiarsDiceGame::MaxChanceOutcomes() const { return dice_sides_; }
+        int BlindLiarsDiceGame::MaxChanceOutcomes() const { return dice_sides_; }
 
-        int LiarsDiceGame::MaxGameLength() const {
+        int BlindLiarsDiceGame::MaxGameLength() const {
             // A bet for each side and number of total dice, plus "liar" action.
             return total_num_dice_ * dice_sides_ + 1;
         }
-        int LiarsDiceGame::MaxChanceNodesInHistory() const { return total_num_dice_; }
+        int BlindLiarsDiceGame::MaxChanceNodesInHistory() const { return total_num_dice_; }
 
-        std::vector<int> LiarsDiceGame::InformationStateTensorShape() const {
+        std::vector<int> BlindLiarsDiceGame::InformationStateTensorShape() const {
             // One-hot encoding for the player number.
             // One-hot encoding for each die (max_dice_per_player_ * sides).
             // One slot(bit) for each legal bid.
@@ -550,7 +560,7 @@ namespace open_spiel {
                     (total_num_dice_ * dice_sides_) + 1};
         }
 
-        std::vector<int> LiarsDiceGame::ObservationTensorShape() const {
+        std::vector<int> BlindLiarsDiceGame::ObservationTensorShape() const {
             // One-hot encoding for the player number.
             // One-hot encoding for each die (max_dice_per_player_ * sides).
             // One slot(bit) for the num_players_ last legal bid.
@@ -560,13 +570,13 @@ namespace open_spiel {
                     (total_num_dice_ * dice_sides_) + 1};
         }
 
-        ImperfectRecallLiarsDiceGame::ImperfectRecallLiarsDiceGame(
+        ImperfectRecallBlindLiarsDiceGame::ImperfectRecallBlindLiarsDiceGame(
                 const GameParameters& params)
-                : LiarsDiceGame(params, kImperfectRecallGameType),
+                : BlindLiarsDiceGame(params, kImperfectRecallGameType),
                   recall_length_(
                           ParameterValue<int>("rollout_length", kDefaultRecallLength)) {}
 
-        std::unique_ptr<State> ImperfectRecallLiarsDiceGame::NewInitialState() const {
+        std::unique_ptr<State> ImperfectRecallBlindLiarsDiceGame::NewInitialState() const {
             return absl::make_unique<ImperfectRecallLiarsDiceState>(shared_from_this(),
                     /*total_num_dice=*/total_num_dice(),
                     /*max_dice_per_player=*/max_dice_per_player(),
@@ -577,7 +587,7 @@ namespace open_spiel {
                 Player player) const {
             SPIEL_CHECK_GE(player, 0);
             SPIEL_CHECK_LT(player, num_players_);
-            const auto* parent_game = down_cast<const ImperfectRecallLiarsDiceGame*>(
+            const auto* parent_game = down_cast<const ImperfectRecallBlindLiarsDiceGame*>(
                     game_.get());
 
             std::string result =
