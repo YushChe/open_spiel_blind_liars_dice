@@ -291,7 +291,7 @@ class _CFRSolverBase(object):
     children_utilities = {}
 
     info_state_node = self._info_state_nodes[info_state]
-    if policies is None:
+    if policies is None or policies[current_player] is None:
       info_state_policy = self._get_infostate_policy(info_state)
     else:
       info_state_policy = policies[current_player](info_state)
@@ -415,14 +415,14 @@ class _CFRSolver(_CFRSolverBase):
   ```
   """
 
-  def evaluate_and_update_policy(self):
+  def evaluate_and_update_policy(self, policies=None):
     """Performs a single step of policy evaluation and policy improvement."""
     self._iteration += 1
     if self._alternating_updates:
-      for player in range(self._game.num_players()):
+      for player in ([0] if policies is not None else range(self._game.num_players())):
         self._compute_counterfactual_regret_for_player(
             self._root_node,
-            policies=None,
+            policies=policies,
             reach_probabilities=np.ones(self._game.num_players() + 1),
             player=player)
         if self._regret_matching_plus:
@@ -431,7 +431,7 @@ class _CFRSolver(_CFRSolverBase):
     else:
       self._compute_counterfactual_regret_for_player(
           self._root_node,
-          policies=None,
+          policies=policies,
           reach_probabilities=np.ones(self._game.num_players() + 1),
           player=None)
       if self._regret_matching_plus:

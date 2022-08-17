@@ -104,6 +104,7 @@ namespace open_spiel {
                                             const std::vector<int>& num_dice)
                 : State(game),
                   dice_outcomes_(),
+                  blind_dice_outcomes_(),
                   bidseq_(),
                   cur_player_(kChancePlayerId),  // chance starts
                   cur_roller_(0),                // first player starts rolling
@@ -122,6 +123,8 @@ namespace open_spiel {
                 std::vector<int> initial_outcomes(num_dices, kInvalidOutcome);
                 dice_outcomes_.push_back(initial_outcomes);
             }
+            blind_dice_outcomes_ = std::vector<std::vector<int>>(dice_outcomes_);
+
         }
 
         std::string BlindLiarsDiceState::ActionToString(Player player,
@@ -190,7 +193,7 @@ namespace open_spiel {
                 int slot = num_dice_rolled_[cur_roller_];
 
                 // Assign the roll.
-                dice_outcomes_[cur_roller_][slot] = 5;//action + 1;
+                dice_outcomes_[cur_roller_][slot] = action + 1;
                 num_dice_rolled_[cur_roller_]++;
 
                 // Check to see if we must change the roller.
@@ -279,7 +282,7 @@ namespace open_spiel {
             SPIEL_CHECK_GE(player, 0);
             SPIEL_CHECK_LT(player, num_players_);
 
-            std::string result = absl::StrJoin(dice_outcomes_[player], "");
+            std::string result = absl::StrJoin(blind_dice_outcomes_[player], "");
             for (int b = 0; b < bidseq_.size(); b++) {
                 if (bidseq_[b] == total_num_dice_ * dice_sides()) {
                     absl::StrAppend(&result, " Liar");
@@ -297,7 +300,7 @@ namespace open_spiel {
             for (auto p = Player{0}; p < num_players_; p++) {
                 if (p != 0) absl::StrAppend(&result, " ");
                 for (int d = 0; d < num_dice_[p]; d++) {
-                    absl::StrAppend(&result, dice_outcomes_[p][d]);
+                    absl::StrAppend(&result, blind_dice_outcomes_[p][d]);
                 }
             }
 
@@ -591,7 +594,7 @@ namespace open_spiel {
                     game_.get());
 
             std::string result =
-                    absl::StrCat("P", player, " ", absl::StrJoin(dice_outcomes_[player], ""));
+                    absl::StrCat("P", player, " ", absl::StrJoin(blind_dice_outcomes_[player], ""));
 
             // Imperfect recall. Show only the last recall_length bids.
             int start_index = std::max<int>(bidseq_.size() - parent_game->recall_length(),
